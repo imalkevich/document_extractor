@@ -13,7 +13,8 @@ USER_AGENTS = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:11.0) Gecko/2010
                ('Mozilla/5.0 (Windows; Windows NT 6.1) AppleWebKit/536.5 (KHTML, like Gecko) Chrome/19.0.1084.46'
                 'Safari/536.5'), )
 
-URL = 'http://document.int.next.qed.westlaw.com/document/v1/rawxml/{}?websitehost=next.qed.westlaw.com'
+URL = 'http://document.int.next.qed.westlaw.com/document/v1/rawxml/{}?websitehost=next.demo.westlaw.com'
+
 
 class DocumentRawLoader(object):
     def __init__(self, doc_guids):
