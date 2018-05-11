@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
-import errorguimonitor
+import extractor
 import os
 
 
@@ -38,7 +38,7 @@ News
 
 setup(
     name='document_extractor',
-    version=errorguimonitor.__version__,
+    version=extractor.__version__,
     description='Extract specific portions of document text from XML',
     long_description=long_description,
     classifiers=[
