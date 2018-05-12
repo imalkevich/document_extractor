@@ -30,6 +30,7 @@ or
 Usage
 -----
 ::
+
     python -m extractor.loader
 
     usage: loader.py [-h] [-f FILE] [-v]
