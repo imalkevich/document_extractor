@@ -121,11 +121,23 @@ class DocumentRawLoaderTestCase(unittest.TestCase):
         # assert
         mock_open.assert_called_with('file.txt', 'r')
 
-    ''' DEBUG
+    def test_get_doc_guids_from_line(self):
+        # arrange
+        line = '"one", "two", "three"'
+        loader = DocumentRawLoader('doc_guids.txt')
+
+        # act
+        guids = loader._get_doc_guids_from_line(line)
+
+        # assert
+        self.assertEqual(guids, [ 'one', 'two', 'three' ])
+
+
+    ''' DEBUG 
     def test_load(self):
         # arrange
         loader = DocumentRawLoader('doc_guids.txt')
-        loader._get_doc_guids = mock.MagicMock(return_value=['I771fcc69cbc611dfb5fdfcf739be147c'])
+        loader._get_doc_guids = mock.MagicMock(return_value=['I0f07d129334911d98b61a35269fc5f88'])
 
         # act
         loader.load()

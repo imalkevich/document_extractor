@@ -13,6 +13,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 from . import __version__
+from datetime import datetime
 
 re_clean = re.compile('<.*?>')
 
@@ -26,6 +27,11 @@ USER_AGENTS = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:11.0) Gecko/2010
 
 URL = 'http://document.int.next.qed.westlaw.com/document/v1/rawxml/{}?websitehost=next.qed.westlaw.com'
 
+def print_now(message, timestamp = True):
+    if timestamp:
+        message = '{}    {}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z'), message)
+    print(message)
+    sys.stdout.flush()
 
 class DocumentRawLoader(object):
     def __init__(self, doc_guids_file):
@@ -33,15 +39,24 @@ class DocumentRawLoader(object):
 
     def load(self):
         doc_guids = self._get_doc_guids()
+        counter = 0
+        start_all = datetime.now()
         for guid in doc_guids:
             try:
                 if os.path.isfile(self._get_file_name(guid)):
+                    print_now('{} is already loaded'.format(guid))
                     pass
+
+                start = datetime.now()
                 doc_xml = self._load_doc_by_guid(guid)
                 lines = self._extract_text_from_xml(doc_xml)
                 self._save_text(guid, lines)
+                print_now('{} loading took {}'.format(guid, (datetime.now() - start)))
+                counter += 1
             except:
-                print('Failed to load doc with guid: {}, error: {}'.format(guid, sys.exc_info()))
+                print_now('Failed to load doc with guid: {}, error: {}'.format(guid, sys.exc_info()))
+        
+        print_now('{} documents loaded in {}'.format(counter, (datetime.now() - start)))
 
     def _load_doc_by_guid(self, guid):
         session = requests.session()
@@ -54,6 +69,7 @@ class DocumentRawLoader(object):
             headers={ 'User-Agent': random.choice(USER_AGENTS) }
         ).text
 
+        session.close()
         return response
 
     def _extract_text_from_xml(self, xml):
@@ -72,7 +88,11 @@ class DocumentRawLoader(object):
                     line = line.strip()
                     if len(line) > 0 and line.isdigit() == False:
                         paragraph.append(line)
-            result.append(' '.join(paragraph))
+            
+            text = ' '.join(paragraph).strip()
+            
+            if len(text) > 0:
+                result.append(text)
 
         return result
 
@@ -102,9 +122,17 @@ class DocumentRawLoader(object):
     def _get_doc_guids(self):
         doc_guids = []
         with open(self.doc_guids_file, 'r') as file:
-            doc_guids = [line.strip() for line in file if len(line.strip()) > 0]
+            for line in file:
+                for guid in self._get_doc_guids_from_line(line):
+                    doc_guids.append(guid)
 
         return doc_guids
+
+    def _get_doc_guids_from_line(self, line):
+        guids = [guid.strip().replace('"', '') for guid in line.split(',') if len(line.strip()) > 0]
+
+        return guids
+
 
 
 def get_parser():
