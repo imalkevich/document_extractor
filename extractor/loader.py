@@ -56,7 +56,7 @@ class DocumentRawLoader(object):
             except:
                 print_now('Failed to load doc with guid: {}, error: {}'.format(guid, sys.exc_info()))
         
-        print_now('{} documents loaded in {}'.format(counter, (datetime.now() - start)))
+        print_now('{} documents loaded in {}'.format(counter, (datetime.now() - start_all)))
 
     def _load_doc_by_guid(self, guid):
         session = requests.session()
