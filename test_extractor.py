@@ -6,6 +6,7 @@ import unittest
 import unittest.mock as mock
 
 from extractor.loader import DocumentRawLoader
+from knowledge_extractor.models import TopicModel
 
 class DocumentRawLoaderTestCase(unittest.TestCase):
     def setUp(self):
@@ -143,6 +144,28 @@ class DocumentRawLoaderTestCase(unittest.TestCase):
         loader.load()
 
         # assert
+    '''
+
+class TopicModelTestCase(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    ''' DEBUG 
+    def test_topic_modelling(self):
+        # arrange
+        doc_guids = ['I0c59fbe4d7b011d983e7e9deff98dc6f', 'I0e040025ee5e11d9bf60c1d57ebc853e']
+
+        model = TopicModel('test_search_guid', doc_guids)
+
+        # act
+        model.train()
+
+        # assert
+        top_words = model.get_top_words()
+        topic_profile = model.get_topic_profile()
     '''
 
 if __name__ == '__main__':

@@ -34,11 +34,12 @@ def print_now(message, timestamp = True):
     sys.stdout.flush()
 
 class DocumentRawLoader(object):
-    def __init__(self, doc_guids_file):
+    def __init__(self, doc_guids_file=None, doc_guids=None):
         self.doc_guids_file = doc_guids_file
+        self.doc_guids = doc_guids
 
     def load(self):
-        doc_guids = self._get_doc_guids()
+        doc_guids = self.doc_guids if self.doc_guids is not None else self._get_doc_guids()
         counter = 0
         start_all = datetime.now()
         for guid in doc_guids:

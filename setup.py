@@ -63,7 +63,17 @@ setup(
         ]
     },
     install_requires=[
-        'requests'
+        'falcon',
+        'falcon_cors',
+        'nltk',
+        'numpy',
+        'pandas',
+        'protobuf',
+        'requests',
+        'scikit-learn',
+        'scipy',
+        'tqdm',
+        'waitress'
     ] + extra_dependencies(),
     test_require = ['coverage', 'codecov']
 )

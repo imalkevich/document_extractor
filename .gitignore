@@ -8,5 +8,7 @@ __pycache__/
 .coverage
 coverage.xml
 venv/
+bigARTM
 documents
 doc_guids.txt
+bigartm*
