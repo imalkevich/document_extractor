@@ -42,6 +42,11 @@ Usage
     -f FILE, --file FILE  file with document guids
     -v, --version         displays the current version of errorguimonitor
 
+Utilities
+---------
+::
+    kill the process in PowerShell  Stop-Process -Id (Get-NetTCPConnection -LocalPort 8088).OwningProcess -Force
+
 Author
 ------
 

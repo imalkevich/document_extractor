@@ -1,22 +1,49 @@
 import argparse
 import falcon
 import os
+import sys
 import time
+import threading
 
 from falcon_cors import CORS
 from waitress import serve
 
 from knowledge_extractor.models import TopicModel
+from extractor.loader import DocumentRawLoader
 
 from . import __version__
 
 waitTime = int(os.environ.get('WAIT_TIME', '2'))
 
+models = {}
+
 class TopicModelApi(object):
     def on_post(self, request, response):
-        doc_guids = request.media.get('doc_guids')
+        search_guid = request.media.get('search_guid')
 
-        result = {'num_doc_guids': len(doc_guids)}
+        result = {'search_guid': search_guid}
+
+        if search_guid not in models:
+            doc_guids = list(set(request.media.get('doc_guids')))
+            model = TopicModel(search_guid, doc_guids)
+            models[search_guid] = model
+            def train_model():
+                DocumentRawLoader(doc_guids=doc_guids).load()
+                model.train()
+
+            threading.Thread(target=train_model).start()
+            result['num_doc_guids'] = len(doc_guids)
+            result['state'] = 'MODEL_TRAINING_STARTED'
+        else:
+            model = models[search_guid]
+            if model.is_ready():
+                documents = model.get_topic_profile()
+
+                result['documents'] = documents
+                result['state'] = 'MODEL_TRAINED'
+            else:
+                result['state'] = 'MODEL_TRAINING'
+
         response.media = result
 
 def get_parser():
@@ -31,7 +58,8 @@ def get_parser():
 
 def command_line_runner():
     parser = get_parser()
-    args = vars(parser.parse_args())
+    _args = parser.parse_args()
+    args = vars(_args)
 
     if args['version']:
         print(__version__)
@@ -44,6 +72,7 @@ def command_line_runner():
     port = args['port']
 
     cors = CORS(allow_origins_list=[
+                'https://1.next.demo.westlaw.com',
                 'https://1.next.qed.westlaw.com'
             ],
             allow_all_headers=True,

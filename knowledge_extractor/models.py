@@ -19,6 +19,13 @@ class TopicModel(object):
         self.search_guid = search_guid
         self.doc_guids = doc_guids
         self.num_of_topics = num_of_topics
+        self.training_done = False
+
+    def is_ready(self):
+        return self.training_done
+
+    def get_doc_guids(self):
+        return self.doc_guids
 
     def get_top_words(self, score_name='text_words', count=None):
         top_words = {}
@@ -78,6 +85,8 @@ class TopicModel(object):
 
         self.model_artm.fit_offline(batch_vectorizer=batch_vectorizer, num_collection_passes=15)
 
+        self.training_done = True
+
     def get_topic_profile(self):
         phi_a = self.model_artm.get_phi(class_ids='doc_guid')
         theta = self.model_artm.get_theta()
@@ -97,7 +106,18 @@ class TopicModel(object):
         mds_cos_clstr = MDS(n_components=2)
         MDS_transformed_cos = mds_cos_clstr.fit_transform(pairwise_distances(topic_profile, metric='cosine'))
 
-        return MDS_transformed_cos
+        result = []
+        for (doc, x, y) in zip(self.doc_guids, MDS_transformed_cos[:, [0]], MDS_transformed_cos[:, [1]]):
+            result.append({'doc_guid': doc, 'x': x[0], 'y': y[0]})
+
+        docs_folder = self._get_documents_folder()
+        for res in result:
+            with open('{}/{}.txt'.format(docs_folder, res['doc_guid']), encoding='utf-8') as doc:
+                for line in doc:
+                    res['description'] = line
+                    break
+
+        return result
 
     def _prepare_texts(self):
         vocabulary_file = self._get_vocabulary_file_name()
@@ -110,7 +130,7 @@ class TopicModel(object):
                     prepared = text_prepare(line)
                     vocabulary.write(prepared)
                 vocabulary.write(' |doc_guid {}\n'.format(guid))
-
+                vocabulary.flush()
         vocabulary.close()
 
         return vocabulary_file

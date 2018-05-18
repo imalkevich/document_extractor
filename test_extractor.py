@@ -7,6 +7,7 @@ import unittest.mock as mock
 
 from extractor.loader import DocumentRawLoader
 from knowledge_extractor.models import TopicModel
+from api.topic_modelling import command_line_runner
 
 class DocumentRawLoaderTestCase(unittest.TestCase):
     def setUp(self):
@@ -168,5 +169,27 @@ class TopicModelTestCase(unittest.TestCase):
         topic_profile = model.get_topic_profile()
     '''
 
+class TopicModelApiTestCase(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    ''' DEBUG 
+    @mock.patch('api.topic_modelling.get_parser')
+    def test_api(self, mock_get_parser):
+        # arrange
+        args = mock.MagicMock()
+        args.__dict__ = {'port': 8088, 'version': None}
+        dummy_parser = mock.MagicMock()
+        dummy_parser.parse_args = mock.MagicMock(return_value=args)
+        mock_get_parser.return_value = dummy_parser
+
+        # act
+        command_line_runner()
+
+        # assert
+    '''
 if __name__ == '__main__':
     unittest.main()

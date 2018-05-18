@@ -46,7 +46,7 @@ class DocumentRawLoader(object):
             try:
                 if os.path.isfile(self._get_file_name(guid)):
                     print_now('{} is already loaded'.format(guid))
-                    pass
+                    continue
 
                 start = datetime.now()
                 doc_xml = self._load_doc_by_guid(guid)
