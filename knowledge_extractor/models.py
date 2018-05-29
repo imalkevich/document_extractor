@@ -8,6 +8,7 @@ import operator
 import os
 import numpy as np
 import pandas as pd
+import sys
 
 from sklearn.manifold import MDS
 from sklearn.metrics import pairwise_distances
@@ -15,27 +16,21 @@ from sklearn.metrics import pairwise_distances
 from knowledge_extractor.utils import text_prepare
 
 class TopicModel(object):
-    def __init__(self, search_guid, doc_guids, num_of_topics=10):
+    def __init__(self, search_guid, documents, analyze_full_doc=True, num_of_topics=10):
         self.search_guid = search_guid
-        self.doc_guids = doc_guids
+        self.documents = documents
+        self.analyze_full_doc = analyze_full_doc
         self.num_of_topics = num_of_topics
         self.training_done = False
 
     def is_ready(self):
         return self.training_done
 
-    def get_doc_guids(self):
-        return self.doc_guids
-
-    def get_top_words(self, score_name='text_words', count=None):
-        top_words = {}
-        for topic_name in self.model_artm.topic_names:
-            top_words[topic_name] = self.top_tokens_by_topic(score_name, topic_name, count=count)
-
-        return top_words
+    def get_doccuments(self):
+        return self.documents
 
     def train(self):
-        vocabulary_file = self._prepare_texts()
+        vocabulary_file = self._prepare_texts_full() if self.analyze_full_doc == True else self._prepare_texts_from_summary()
         target_folder = self._get_bigARTM_dir()
 
         batch_vectorizer = artm.BatchVectorizer(
@@ -87,6 +82,13 @@ class TopicModel(object):
 
         self.training_done = True
 
+    def get_top_words(self, score_name='text_words', count=None):
+        top_words = {}
+        for topic_name in self.model_artm.topic_names:
+            top_words[topic_name] = self.top_tokens_by_topic(score_name, topic_name, count=count)
+
+        return top_words
+
     def get_topic_profile(self):
         phi_a = self.model_artm.get_phi(class_ids='doc_guid')
         theta = self.model_artm.get_theta()
@@ -107,23 +109,85 @@ class TopicModel(object):
         MDS_transformed_cos = mds_cos_clstr.fit_transform(pairwise_distances(topic_profile, metric='cosine'))
 
         result = []
-        for (doc, x, y) in zip(self.doc_guids, MDS_transformed_cos[:, [0]], MDS_transformed_cos[:, [1]]):
-            result.append({'doc_guid': doc, 'x': x[0], 'y': y[0]})
+        for a_idx, doc_guid in enumerate(topic_profile.index):
+            sbj = topic_profile.columns[topic_profile.iloc[a_idx].values.argmax()]
+            coord = MDS_transformed_cos[a_idx]
+            docs = [d for d in self.documents if d['docGuid'] == doc_guid]
+            rank = -1
+            title = 'N/A'
+            summary = 'N/A'
+            description = 'N/A'
+            if len(docs):
+                summary = docs[0]['summary'] if 'summary' in docs[0] else description
+                description = self._get_doc_description_from_file(docs[0]['docGuid'])
+                rank = docs[0]['rank'] if 'rank' in docs[0] else rank
+                title = docs[0]['title'] if 'title' in docs[0] else title
+            else:
+                print('Not able to find the following doc: {}'.format(doc_guid))
 
-        docs_folder = self._get_documents_folder()
-        for res in result:
-            with open('{}/{}.txt'.format(docs_folder, res['doc_guid']), encoding='utf-8') as doc:
-                for line in doc:
-                    res['description'] = line
-                    break
+            result.append({
+                'doc_guid': doc_guid, 
+                'rank': rank,
+                'title': title,
+                'sbj': sbj, 
+                'description': description, 
+                'summary': summary,
+                'x': coord[0], 
+                'y': coord[0]
+            })
 
         return result
 
-    def _prepare_texts(self):
+    def _get_doc_description_from_file(self, doc_guid):
+        docs_folder = self._get_documents_folder()
+        description = 'N/A'
+        with open('{}/{}.txt'.format(docs_folder, doc_guid), encoding='utf-8') as doc:
+            for line in doc:
+                description = line
+                break
+        return description
+
+    def top_tokens_by_topic(self, score_name, topic_name, count=None):
+        top_tokens = self.model_artm.score_tracker[score_name]
+        top_words = list()
+        
+        if topic_name not in top_tokens.last_tokens \
+            or topic_name not in top_tokens.last_weights:
+            return []
+
+        for (token, weight) in zip(top_tokens.last_tokens[topic_name],
+                                top_tokens.last_weights[topic_name]):
+            top_words.append((token, weight))
+        if count is None:
+            count = len(top_words)
+        
+        top_words = sorted(top_words,key=operator.itemgetter(1), reverse=True)[:count]
+        
+        return [x[0] for x in top_words]
+
+    def _prepare_texts_from_summary(self):
+        vocabulary_file = self._get_vocabulary_file_name()
+        vocabulary = open(vocabulary_file, 'w')
+        for doc in self.documents:
+            try:
+                vocabulary.write('document_{} |text '.format(doc['docGuid']))
+                prepared = text_prepare(doc['summary'] if 'summary' in doc else 'N/A')
+                vocabulary.write(prepared)
+                vocabulary.write(' |doc_guid {}\n'.format(doc['docGuid']))
+            except:
+                print('Exception occured for doc_guid: {}, error: {}'.format(doc['docGuid'], sys.exc_info()))
+
+            vocabulary.flush()
+
+        vocabulary.close()
+
+        return vocabulary_file
+    
+    def _prepare_texts_full(self):
         vocabulary_file = self._get_vocabulary_file_name()
         vocabulary = open(vocabulary_file, 'w')
         docs_folder = self._get_documents_folder()
-        for guid in self.doc_guids:
+        for guid in [doc['docGuid'] for doc in self.documents]:
             with open('{}/{}.txt'.format(docs_folder, guid), encoding='utf-8') as doc:
                 vocabulary.write('document_{} |text '.format(guid))
                 for line in doc:
@@ -134,7 +198,7 @@ class TopicModel(object):
         vocabulary.close()
 
         return vocabulary_file
-
+    
     def _get_bigARTM_dir(self):
         parent_path = os.path.dirname(os.path.dirname(inspect.getfile(self.__class__)))
         dir_path = os.path.join(
@@ -171,21 +235,3 @@ class TopicModel(object):
         )
 
         return file_name
-
-    def top_tokens_by_topic(self, score_name, topic_name, count=None):
-        top_tokens = self.model_artm.score_tracker[score_name]
-        top_words = list()
-        
-        if topic_name not in top_tokens.last_tokens \
-            or topic_name not in top_tokens.last_weights:
-            return []
-
-        for (token, weight) in zip(top_tokens.last_tokens[topic_name],
-                                top_tokens.last_weights[topic_name]):
-            top_words.append((token, weight))
-        if count is None:
-            count = len(top_words)
-        
-        top_words = sorted(top_words,key=operator.itemgetter(1), reverse=True)[:count]
-        
-        return [x[0] for x in top_words]

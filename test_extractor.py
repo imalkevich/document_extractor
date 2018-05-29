@@ -176,7 +176,7 @@ class TopicModelApiTestCase(unittest.TestCase):
     def tearDown(self):
         pass
 
-    ''' DEBUG 
+    ''' DEBUG
     @mock.patch('api.topic_modelling.get_parser')
     def test_api(self, mock_get_parser):
         # arrange
@@ -190,6 +190,6 @@ class TopicModelApiTestCase(unittest.TestCase):
         command_line_runner()
 
         # assert
-    '''
+     '''
 if __name__ == '__main__':
     unittest.main()

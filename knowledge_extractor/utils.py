@@ -14,6 +14,7 @@ nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
 nltk.download('wordnet')
 
+RE_HTML_CLEAN = re.compile('<.*?>')
 REPLACE_BY_SPACE_RE = re.compile(r'[/(){}\[\]\|@,;]')
 GOOD_SYMBOLS_RE = re.compile(r'[^0-9a-z #+_]')
 STOPWORDS = set(stopwords.words('english'))
@@ -21,6 +22,7 @@ wnl = WordNetLemmatizer()
 
 def text_prepare(text):
     text = text.lower()
+    text = RE_HTML_CLEAN.sub(' ', text)
     text = REPLACE_BY_SPACE_RE.sub(' ', text)
     text = GOOD_SYMBOLS_RE.sub('', text)
     text = ' '.join([x for x in text.split() if x and x not in STOPWORDS])
